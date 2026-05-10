@@ -1,0 +1,4 @@
+bin/
+obj/
+.next/
+node_modules/

@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* 1. Definição das Variáveis (Design Tokens) */
+:root {
+  --background: #1bb0f5;
+  --foreground: #482481;
+  --font-geist-sans: Arial, Helvetica, sans-serif;
+  --font-geist-mono: monospace;
+}
+
+/* Modo Escuro automático via preferência do sistema */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #2a006e;
+    --foreground: #086794;
+  }
+}
+
+/* 2. Integração com o Motor do Tailwind v4 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 3. Aplicação dos Estilos Globais */
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    /* Garante que a transição de cores seja suave ao mudar o tema */
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  /* Opcional: Garante que o html ocupe a tela toda */
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+}
