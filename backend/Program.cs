@@ -8,7 +8,7 @@ builder.Services.AddCors(options =>
 {
   options.AddPolicy("AllowNextJS", policy =>
   {
-    policy.WithOrigins("http://localhost:3000")
+    policy.WithOrigins("http://localhost:3000", "http://192.168.1.14:3000")
           .AllowAnyHeader()
           .AllowAnyMethod();
   });
