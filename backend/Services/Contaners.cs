@@ -1,7 +1,8 @@
 using System;
-using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Text;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 public record ContainerRequest(string Name, string Image, bool UsePort, int Port, bool UseVolume, string Volume, bool IsEnvironment, string Environment);
 public class Containers
 {
@@ -144,7 +145,7 @@ public class Containers
     {
       sb.Append($" -e {envivonment}");
     }
-    sb.Append($" {name}");
+    sb.Append($" {image}");
     string fullCommand = $"-c \"{sb.ToString()}\"";
     await Task.Run(async () =>
     {

@@ -17,7 +17,7 @@ interface ContainerData {
 export async function getImages(): Promise<string[]> {
   const response = await fetch(url + "/images");
   if (!response.ok) {
-    throw new Error("Erro ao buscar imagens...");
+    throw new Error("Erro ao buscar imagens... O C# capotou?");
   }
   return response.json();
 }
@@ -34,7 +34,6 @@ export default function Home() {
   const [editorFileName, setEditorFileName] = useState("");
   const [editorContent, setEditorContent] = useState("");
 
-  // Função solta para ser usada apenas pelos botões (Linter adora assim)
   const fetchImagesList = async () => {
     try {
       const data = await getImages();
@@ -46,7 +45,6 @@ export default function Home() {
 
   // === WEBSOCKETS E CARREGAMENTO INICIAL ===
   useEffect(() => {
-    // Usando .then() direto aqui cala a boca do erro de "set-state-in-effect"
     getImages()
       .then((data) => setImages(data))
       .catch((err) => console.error(err));
@@ -76,7 +74,7 @@ export default function Home() {
       wsAll.close();
       wsOnline.close();
     };
-  }, []); // Sem aquele disable chato aqui!
+  }, []);
 
   // === FUNÇÕES DE AÇÃO ===
   const handleRemoveImage = async (imageName: string) => {
@@ -94,15 +92,13 @@ export default function Home() {
 
   const handlePullImage = async () => {
     if (!inputImagem) return alert("Baka! Digita o nome da imagem primeiro.");
-    console.log(`Puxando imagem da internet... isso pode demorar.`);
-
     try {
       const response = await fetch(
         `${url}/pullimage?name=${encodeURIComponent(inputImagem)}`,
         { method: "POST" },
       );
       if (response.ok) {
-        alert("Kyaa! Imagem baixada com sucesso!");
+        alert("Imagem baixada com sucesso!");
         setInputImagem("");
         fetchImagesList();
       }
@@ -112,34 +108,73 @@ export default function Home() {
     }
   };
 
+  // =========================================================
+  // NOVA LOGICA DE CRIAÇÃO DINÂMICA LIGADA DIRETAMENTE À ROTA
+  // =========================================================
   const handleCreateContainerFromImage = async (imageName: string) => {
-    const containerName = prompt(
-      `Digite um nome para o container baseado em ${imageName}:`,
-    );
-    if (!containerName) return;
+    // 1. Nome é estritamente OBRIGATÓRIO
+    const containerName = prompt("Digite o nome do container (OBRIGATÓRIO):");
+    if (!containerName || containerName.trim() === "") {
+      return alert("Baka! O nome do container não pode ser vazio.");
+    }
+
+    // 2. Coleta dos dados opcionais
+    const portInput =
+      prompt(
+        "Porta do container (Opcional, ex: 8080) / Deixe vazio se não usar:",
+      ) || "";
+    const volumeInput =
+      prompt(
+        "Volume do container (Opcional, ex: meu_vol:/app) / Deixe vazio se não usar:",
+      ) || "";
+    const envInput =
+      prompt(
+        "Variável de ambiente (Opcional, ex: CHAVE=valor) / Deixe vazio se não usar:",
+      ) || "";
+
+    // 3. Ativação automática dos booleanos baseada no preenchimento do usuário
+    const hasPort = portInput.trim() !== "";
+    const hasVolume = volumeInput.trim() !== "";
+    const hasEnv = envInput.trim() !== "";
 
     try {
+      // Montando o payload exato que o Record ContainerRequest do seu C# quer receber
       const req = {
-        Name: containerName,
-        Image: imageName.split(":")[0],
-        UsePort: false,
-        Port: 0,
-        UseVolume: false,
-        Volume: "",
-        IsEnvironment: false,
-        Environment: "",
+        name: containerName.trim(),
+        image: imageName.trim(),
+        usePort: hasPort,
+        port: hasPort ? parseInt(portInput.trim(), 10) : 0,
+        useVolume: hasVolume,
+        volume: volumeInput.trim(),
+        isEnvironment: hasEnv,
+        environment: envInput.trim(),
       };
+
+      console.log(
+        "Desparando poção de criação para a rota /createcontainer...",
+        req,
+      );
 
       const response = await fetch(`${url}/createcontainer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(req),
       });
 
-      if (response.ok) alert(`Container ${containerName} criado!`);
+      if (response.ok) {
+        const resData = await response.json();
+        alert(
+          `Booyah! Backend respondeu: ${resData.message || "Processo iniciado!"}`,
+        );
+      } else {
+        const errorText = await response.text();
+        alert(`Ocorreu um erro no C#: ${errorText}`);
+      }
     } catch (err) {
       console.error(err);
-      alert("Erro ao criar container.");
+      alert("Não consegui me comunicar com o endpoint /createcontainer.");
     }
   };
 
@@ -159,7 +194,6 @@ export default function Home() {
     alert(`Abrindo terminal para ${name}... (Em construção)`);
   };
 
-  // === FUNÇÕES DO EDITOR ===
   const openEditor = (fileName: string, defaultContent: string = "") => {
     setEditorFileName(fileName);
     setEditorContent(defaultContent);
@@ -168,13 +202,12 @@ export default function Home() {
 
   const saveEditor = async () => {
     console.log(`Salvando arquivo: ${editorFileName}`);
-    alert(`${editorFileName} salvo! (Ver log no console)`);
     setIsEditorOpen(false);
   };
 
   return (
     <main className="flex flex-col items-center min-h-screen p-8 bg-[#1a0b2e] relative">
-      {/* === MODAL DO EDITOR DE CÓDIGO === */}
+      {/* MODAL DO EDITOR */}
       {isEditorOpen && (
         <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
           <div className="bg-[#0a001a] border-2 border-[#482481] w-full max-w-4xl h-[80vh] flex flex-col rounded-lg shadow-2xl">
@@ -232,9 +265,9 @@ export default function Home() {
         </button>
       </div>
 
-      {/* GRID COM OS PAINÉIS LADO A LADO */}
+      {/* GRID COM OS PAINÉIS */}
       <div className="flex flex-row flex-wrap gap-8 justify-center items-start w-full max-w-7xl">
-        {/* === PAINEL 1: IMAGENS === */}
+        {/* PAINEL IMAGENS */}
         <div className={style.centrilizer}>
           <section className="flex flex-col w-full h-full p-4 overflow-hidden relative">
             <h1 className="text-xl font-bold text-center mb-4 text-[#1bb0f5]">
@@ -294,7 +327,7 @@ export default function Home() {
           </section>
         </div>
 
-        {/* === PAINEL 2: TODOS OS CONTAINERS === */}
+        {/* PAINEL TODOS OS CONTAINERS */}
         <div className={style.centrilizer}>
           <section className="flex flex-col w-full h-full p-4 overflow-hidden">
             <h1 className="text-xl font-bold text-center mb-4 text-[#1bb0f5]">
@@ -361,7 +394,7 @@ export default function Home() {
           </section>
         </div>
 
-        {/* === PAINEL 3: CONTAINERS ONLINE === */}
+        {/* PAINEL CONTAINERS ONLINE */}
         <div className={style.centrilizer}>
           <section className="flex flex-col w-full h-full p-4 overflow-hidden">
             <h1 className="text-xl font-bold text-center mb-4 text-[#3c6b42]">
